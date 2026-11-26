@@ -66,7 +66,7 @@ Visit `http://localhost:8080`
 ### Architecture
 
 ```
-Client (quiz.html) → POST /api/ → server.js → LLM → Response
+Client (recipe.html) → POST /api/ → server.js → LLM → Response
                                      ↓
                               prompt.md (template)
 ```
@@ -114,13 +114,15 @@ Format: JSON array
 
 ## Example Applications
 
-### 1. IT Certification Quiz (Included)
+### 1. Recipe Generator (Included)
 
 **Files:**
-- `prompt.md` - Defines IT quiz generation logic
-- `public/quiz.html` - Quiz interface
+- `prompt.md` - Defines recipe generation rules and JSON output
+- `public/recipe.html` - Recipe input form and results
+- `public/my-list.html` - Saved recipes
+- `public/recipe.css` - Recipe app styles
 
-**Usage:** Generate IT certification practice questions
+**Usage:** Enter ingredients, cuisine (Japanese, Western, or Chinese), servings, and a time limit to generate three recipes. Regenerate individual suggestions, then search saved recipes and organize them with tags and notes.
 
 ### 2. Translation App (Example)
 
@@ -178,9 +180,10 @@ generic-webapi/
 ├── package.json       # Dependencies
 ├── .env.example       # Environment variables template
 ├── public/            # Static files
-│   ├── quiz.html     # IT quiz application
-│   ├── style.css     # Styles
-│   └── quiz.css      # Quiz-specific styles
+│   ├── recipe.html   # Recipe generator
+│   ├── my-list.html  # Saved recipes
+│   ├── recipe.css    # Recipe app styles
+│   └── index.html    # App links
 └── README.md         # This file
 ```
 

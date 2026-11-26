@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>アプリ一覧</title>
+    <title>レシピ制作室</title>
     <style>
         body { font-family: sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; color: #333; }
         h1 { font-size: 1.4rem; }
@@ -13,7 +13,7 @@
     </style>
 </head>
 <body>
-    <h1>アプリ一覧</h1>
+    <h1>レシピ制作室</h1>
     <ul id="appList"></ul>
 
     <script>
@@ -32,7 +32,11 @@
                 const li = document.createElement('li');
                 const a = document.createElement('a');
                 a.href = name;
-                a.textContent = name;
+                a.textContent = name === 'recipe.html'
+                    ? 'レシピをつくる'
+                    : name === 'my-list.html'
+                        ? 'マイリスト'
+                        : name;
                 li.appendChild(a);
                 list.appendChild(li);
             });

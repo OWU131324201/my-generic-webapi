@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#f7f4ec">
+    <title>レシピ制作室</title>
+    <link rel="stylesheet" href="recipe.css">
+</head>
+<body>
+    <main class="app-shell">
+        <header class="hero">
+            <div class="hero-copy">
+                <p class="eyebrow">YOUR EVERYDAY KITCHEN</p>
+                <h1>レシピ制作室<span>。</span></h1>
+                <p class="hero-description">冷蔵庫にある食材から、今日作りたい料理を見つけましょう。</p>
+            </div>
+            <div class="hero-actions">
+                <a class="bookmark-nav" href="my-list.html" aria-label="マイリストを開く">♡ マイリスト <span id="savedCount">0</span></a>
+                <div class="hero-mark" aria-hidden="true">菜</div>
+            </div>
+        </header>
+
+        <section class="workspace" aria-label="レシピの条件">
+            <form id="recipeForm" class="recipe-form">
+                <div class="section-heading">
+                    <span class="step-number">01</span>
+                    <div>
+                        <h2>今日の条件を教えてください</h2>
+                        <p>食材と気分に合わせて、3つのレシピをご提案します。</p>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="ingredients">使いたい食材 <span class="required">必須</span></label>
+                    <textarea id="ingredients" name="ingredients" rows="3" placeholder="例：鶏もも肉、玉ねぎ、ピーマン" required></textarea>
+                    <span class="field-hint">複数ある場合は、読点や改行で区切ってください。</span>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="genre">料理ジャンル</label>
+                        <select id="genre" name="genre">
+                            <option value="和食">和食</option>
+                            <option value="洋食">洋食</option>
+                            <option value="中華">中華</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="servings">人数</label>
+                        <div class="input-with-unit">
+                            <input id="servings" name="servings" type="number" min="1" max="12" value="2" required>
+                            <span>人分</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cookingTime">調理時間</label>
+                        <div class="input-with-unit">
+                            <input id="cookingTime" name="cookingTime" type="number" min="5" max="180" step="5" value="30" required>
+                            <span>分以内</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-footer">
+                    <p>材料の分量は人数に合わせて調整します。</p>
+                    <button class="submit-button" id="submitButton" type="submit">
+                        <span>3つのレシピをつくる</span>
+                        <span class="button-arrow" aria-hidden="true">→</span>
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <p id="status" class="status" role="status" hidden></p>
+
+        <section id="resultsSection" class="results-section" aria-live="polite" hidden>
+            <div class="results-heading">
+                <div class="section-heading">
+                    <span class="step-number">02</span>
+                    <div>
+                        <h2>今日のおすすめレシピ</h2>
+                        <p id="resultsSummary"></p>
+                    </div>
+                </div>
+            </div>
+            <div id="recipeList" class="recipe-list"></div>
+        </section>
+
+        <footer class="page-footer">おいしい時間を、いつもの食材から。</footer>
+    </main>
+
+    <script>
+        const form = document.getElementById('recipeForm');
+        const submitButton = document.getElementById('submitButton');
+        const statusEl = document.getElementById('status');
+        const resultsSection = document.getElementById('resultsSection');
+        const recipeList = document.getElementById('recipeList');
+        const savedCount = document.getElementById('savedCount');
+        const bookmarksKey = 'recipe-bookmarks-v1';
+        let bookmarks = loadBookmarks();
+        let currentRecipes = [];
+        let currentRecipeContext = null;
+        let regeneratingIndex = null;
+
+        renderBookmarks();
+        window.addEventListener('storage', (event) => {
+            if (event.key === bookmarksKey) {
+                bookmarks = loadBookmarks();
+                renderBookmarks();
+                renderGeneratedRecipes();
+            }
+        });
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            if (!form.reportValidity()) return;
+
+            const formData = new FormData(form);
+            const ingredients = String(formData.get('ingredients')).trim();
+            const servings = Number(formData.get('servings'));
+            const cookingTime = Number(formData.get('cookingTime'));
+
+            setLoading(true);
+            statusEl.hidden = true;
+            resultsSection.hidden = true;
+            recipeList.replaceChildren();
+
+            try {
+                const context = { ingredients, genre: formData.get('genre'), servings, cookingTime };
+                const recipes = await requestRecipes(context, 3);
+
+                document.getElementById('resultsSummary').textContent = `${context.genre}・${servings}人分・${cookingTime}分以内`;
+                currentRecipes = recipes;
+                currentRecipeContext = context;
+                renderGeneratedRecipes();
+                resultsSection.hidden = false;
+                resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } catch (error) {
+                statusEl.textContent = error.message || 'レシピの生成に失敗しました。時間をおいて再度お試しください。';
+                statusEl.hidden = false;
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        function renderGeneratedRecipes() {
+            recipeList.replaceChildren();
+            if (!currentRecipeContext) return;
+            currentRecipes.forEach((recipe, index) => {
+                recipeList.appendChild(createRecipeCard(
+                    recipe,
+                    index + 1,
+                    currentRecipeContext.servings,
+                    currentRecipeContext.genre,
+                    currentRecipeContext.cookingTime
+                ));
+            });
+        }
+
+        async function requestRecipes(context, count, excludeRecipe = '', allowAdditional = false) {
+            const response = await fetch('/api/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: '今日のおすすめレシピ',
+                    ...context,
+                    count,
+                    excludeRecipe
+                })
+            });
+
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'レシピを生成できませんでした。');
+            if (!Array.isArray(result.data) || (allowAdditional ? result.data.length < count : result.data.length !== count)) {
+                throw new Error(`レシピを${count}件取得できませんでした。もう一度お試しください。`);
+            }
+            return result.data;
+        }
+
+        async function regenerateRecipe(index) {
+            if (regeneratingIndex !== null || !currentRecipeContext || !currentRecipes[index]) return;
+
+            regeneratingIndex = index;
+            statusEl.hidden = true;
+            submitButton.disabled = true;
+            renderGeneratedRecipes();
+
+            try {
+                const currentNames = new Set(currentRecipes
+                    .map((recipe) => String(recipe.name || '').trim().toLocaleLowerCase('ja'))
+                    .filter(Boolean));
+                const excludedNames = currentRecipes.map((recipe) => recipe.name).filter(Boolean).join('、');
+                const candidates = await requestRecipes(currentRecipeContext, 1, excludedNames, true);
+                const replacement = candidates.find((recipe) => {
+                    const name = String(recipe.name || '').trim().toLocaleLowerCase('ja');
+                    return !name || !currentNames.has(name);
+                });
+                if (!replacement) throw new Error('別のレシピを生成できませんでした。もう一度お試しください。');
+                currentRecipes[index] = replacement;
+                renderGeneratedRecipes();
+            } catch (error) {
+                showStatus(error.message || 'レシピを再生成できませんでした。もう一度お試しください。');
+            } finally {
+                regeneratingIndex = null;
+                submitButton.disabled = false;
+                renderGeneratedRecipes();
+            }
+        }
+
+        function createRecipeCard(recipe, index, servings, genre, cookingTime) {
+            const card = document.createElement('article');
+            card.className = 'recipe-card';
+
+            const header = document.createElement('div');
+            header.className = 'recipe-card-header';
+
+            const number = document.createElement('span');
+            number.className = 'recipe-number';
+            number.textContent = `RECIPE 0${index}`;
+
+            const time = document.createElement('span');
+            time.className = 'time-badge';
+            time.textContent = `◷ ${Number(recipe.cookingTimeMinutes) || '—'}分`;
+            header.append(number, time);
+
+            const title = document.createElement('h3');
+            title.textContent = recipe.name || 'おすすめレシピ';
+
+            const description = document.createElement('p');
+            description.className = 'recipe-description';
+            description.textContent = recipe.description || '';
+
+            const meta = document.createElement('p');
+            meta.className = 'servings-note';
+            meta.textContent = `${servings}人分`;
+
+            const ingredientsHeading = document.createElement('h4');
+            ingredientsHeading.textContent = '材料';
+            const ingredientsList = document.createElement('ul');
+            ingredientsList.className = 'ingredients-list';
+            appendTextItems(ingredientsList, recipe.ingredients);
+
+            const stepsHeading = document.createElement('h4');
+            stepsHeading.textContent = '作り方';
+            const stepsList = document.createElement('ol');
+            stepsList.className = 'steps-list';
+            appendTextItems(stepsList, recipe.steps);
+
+            const key = recipeKey(recipe);
+            const isSaved = bookmarks.some((bookmark) => bookmark.key === key);
+            const bookmarkButton = document.createElement('button');
+            bookmarkButton.type = 'button';
+            bookmarkButton.className = `bookmark-button${isSaved ? ' is-saved' : ''}`;
+            bookmarkButton.textContent = isSaved ? '♥ 保存済み' : '♡ マイリストに保存';
+            bookmarkButton.setAttribute('aria-pressed', String(isSaved));
+            bookmarkButton.addEventListener('click', () => {
+                if (isSaved) {
+                    removeBookmark(key);
+                } else {
+                    addBookmark({ key, recipe, servings, genre, cookingTime, tags: [], note: '' });
+                }
+            });
+
+            const actions = document.createElement('div');
+            actions.className = 'recipe-actions';
+
+            const regenerateButton = document.createElement('button');
+            regenerateButton.type = 'button';
+            regenerateButton.className = 'regenerate-button';
+            regenerateButton.disabled = regeneratingIndex !== null;
+            regenerateButton.textContent = regeneratingIndex === index - 1 ? '再生成しています…' : '↻ 別のレシピを提案';
+            regenerateButton.addEventListener('click', () => regenerateRecipe(index - 1));
+            actions.appendChild(regenerateButton);
+
+            actions.appendChild(bookmarkButton);
+            card.append(header, title, description, meta, ingredientsHeading, ingredientsList, stepsHeading, stepsList, actions);
+            return card;
+        }
+
+        function renderBookmarks() {
+            savedCount.textContent = String(bookmarks.length);
+        }
+
+        function addBookmark(bookmark) {
+            if (bookmarks.some((saved) => saved.key === bookmark.key)) return;
+            bookmarks = [bookmark, ...bookmarks];
+            if (!storeBookmarks()) {
+                bookmarks.shift();
+                showStatus('マイリストを保存できませんでした。ブラウザーの保存設定をご確認ください。');
+                return;
+            }
+            renderBookmarks();
+            renderGeneratedRecipes();
+        }
+
+        function removeBookmark(key) {
+            const previousBookmarks = bookmarks;
+            bookmarks = bookmarks.filter((bookmark) => bookmark.key !== key);
+            if (!storeBookmarks()) {
+                bookmarks = previousBookmarks;
+                showStatus('マイリストを更新できませんでした。ブラウザーの保存設定をご確認ください。');
+                return;
+            }
+            renderBookmarks();
+            renderGeneratedRecipes();
+        }
+
+        function recipeKey(recipe) {
+            return JSON.stringify([
+                recipe.name || '',
+                recipe.description || '',
+                recipe.cookingTimeMinutes || 0,
+                recipe.ingredients || [],
+                recipe.steps || []
+            ]);
+        }
+
+        function loadBookmarks() {
+            try {
+                const saved = JSON.parse(localStorage.getItem(bookmarksKey) || '[]');
+                return Array.isArray(saved) ? saved.filter((item) => item && item.recipe && item.key) : [];
+            } catch {
+                return [];
+            }
+        }
+
+        function storeBookmarks() {
+            try {
+                localStorage.setItem(bookmarksKey, JSON.stringify(bookmarks));
+                return true;
+            } catch {
+                return false;
+            }
+        }
+
+        function showStatus(message) {
+            statusEl.textContent = message;
+            statusEl.hidden = false;
+            statusEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        function appendTextItems(list, items) {
+            (Array.isArray(items) ? items : []).forEach((text) => {
+                const item = document.createElement('li');
+                item.textContent = String(text);
+                list.appendChild(item);
+            });
+        }
+
+        function setLoading(isLoading) {
+            submitButton.disabled = isLoading;
+            submitButton.querySelector('span:first-child').textContent = isLoading ? 'レシピを考えています…' : '3つのレシピをつくる';
+            submitButton.setAttribute('aria-busy', String(isLoading));
+        }
+    </script>
+</body>
+</html>

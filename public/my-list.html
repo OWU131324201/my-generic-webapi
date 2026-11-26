@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#f7f4ec">
+    <title>マイリスト | レシピ制作室</title>
+    <link rel="stylesheet" href="recipe.css">
+</head>
+<body>
+    <main class="app-shell">
+        <header class="hero">
+            <div class="hero-copy">
+                <p class="eyebrow">YOUR SAVED RECIPES</p>
+                <h1>マイリスト<span>。</span></h1>
+                <p class="hero-description">お気に入りのレシピを、このブラウザーに保存しています。</p>
+            </div>
+            <div class="hero-actions">
+                <a class="bookmark-nav back-nav" href="recipe.html">← レシピ制作室へ</a>
+                <div class="hero-mark" aria-hidden="true">♡</div>
+            </div>
+        </header>
+
+        <section class="saved-section">
+            <div class="results-heading">
+                <div class="section-heading">
+                    <span class="step-number">♡</span>
+                    <div>
+                        <h2>保存したレシピ <span id="savedCount" class="saved-count"></span></h2>
+                        <p>料理名・材料・タグ・メモから探せます。</p>
+                    </div>
+                </div>
+            </div>
+            <div class="my-list-tools">
+                <label for="searchInput">マイリストを検索</label>
+                <input id="searchInput" type="search" placeholder="例：鶏肉、作りたい、メモの言葉">
+                <p id="searchSummary" class="search-summary" aria-live="polite"></p>
+            </div>
+            <div id="savedRecipeList" class="recipe-list"></div>
+            <p id="savedEmpty" class="empty-state" hidden>まだ保存したレシピはありません。レシピ制作室でお気に入りを保存してください。</p>
+            <p id="noResults" class="empty-state" hidden>検索に一致するレシピがありません。別の言葉で検索してください。</p>
+        </section>
+
+        <datalist id="tagSuggestions">
+            <option value="作りたい"></option>
+            <option value="作った"></option>
+            <option value="また作りたい"></option>
+            <option value="時短"></option>
+        </datalist>
+
+        <p id="status" class="status" role="status" hidden></p>
+        <footer class="page-footer">おいしい時間を、いつもの食材から。</footer>
+    </main>
+
+    <script>
+        const bookmarksKey = 'recipe-bookmarks-v1';
+        const savedRecipeList = document.getElementById('savedRecipeList');
+        const savedEmpty = document.getElementById('savedEmpty');
+        const noResults = document.getElementById('noResults');
+        const savedCount = document.getElementById('savedCount');
+        const searchInput = document.getElementById('searchInput');
+        const searchSummary = document.getElementById('searchSummary');
+        const statusEl = document.getElementById('status');
+        let bookmarks = loadBookmarks();
+
+        renderBookmarks();
+        searchInput.addEventListener('input', renderBookmarks);
+
+        window.addEventListener('storage', (event) => {
+            if (event.key === bookmarksKey) {
+                bookmarks = loadBookmarks();
+                renderBookmarks();
+            }
+        });
+
+        function renderBookmarks() {
+            savedRecipeList.replaceChildren();
+            const query = searchInput.value.trim().toLocaleLowerCase('ja');
+            const filteredBookmarks = bookmarks.filter((bookmark) => matchesSearch(bookmark, query));
+            savedCount.textContent = `(${filteredBookmarks.length}/${bookmarks.length})`;
+            searchSummary.textContent = query ? `${filteredBookmarks.length}件が見つかりました` : `保存済み ${bookmarks.length}件`;
+            savedEmpty.hidden = bookmarks.length > 0;
+            noResults.hidden = bookmarks.length === 0 || filteredBookmarks.length > 0;
+            filteredBookmarks.forEach((bookmark) => savedRecipeList.appendChild(createRecipeCard(bookmark)));
+        }
+
+        function matchesSearch(bookmark, query) {
+            if (!query) return true;
+            const recipe = bookmark.recipe;
+            const searchableText = [
+                recipe.name,
+                recipe.description,
+                bookmark.genre,
+                bookmark.note,
+                ...(Array.isArray(bookmark.tags) ? bookmark.tags : []),
+                ...(Array.isArray(recipe.ingredients) ? recipe.ingredients : []),
+                ...(Array.isArray(recipe.steps) ? recipe.steps : [])
+            ].join(' ').toLocaleLowerCase('ja');
+            return searchableText.includes(query);
+        }
+
+        function createRecipeCard(bookmark) {
+            const recipe = bookmark.recipe;
+            const card = document.createElement('article');
+            card.className = 'recipe-card';
+
+            const header = document.createElement('div');
+            header.className = 'recipe-card-header';
+            const label = document.createElement('span');
+            label.className = 'recipe-number';
+            label.textContent = 'MY LIST';
+            const time = document.createElement('span');
+            time.className = 'time-badge';
+            time.textContent = `◷ ${Number(recipe.cookingTimeMinutes) || '—'}分`;
+            header.append(label, time);
+
+            const title = document.createElement('h3');
+            title.textContent = recipe.name || 'おすすめレシピ';
+            const description = document.createElement('p');
+            description.className = 'recipe-description';
+            description.textContent = recipe.description || '';
+            const meta = document.createElement('p');
+            meta.className = 'servings-note';
+            meta.textContent = `${bookmark.genre || 'ジャンル未設定'}・${bookmark.servings || 2}人分`;
+
+            const ingredientsHeading = document.createElement('h4');
+            ingredientsHeading.textContent = '材料';
+            const ingredientsList = document.createElement('ul');
+            ingredientsList.className = 'ingredients-list';
+            appendItems(ingredientsList, recipe.ingredients);
+
+            const stepsHeading = document.createElement('h4');
+            stepsHeading.textContent = '作り方';
+            const stepsList = document.createElement('ol');
+            stepsList.className = 'steps-list';
+            appendItems(stepsList, recipe.steps);
+
+            const organizer = document.createElement('div');
+            organizer.className = 'recipe-organizer';
+
+            const tagsHeading = document.createElement('h4');
+            tagsHeading.textContent = 'タグ';
+            const tagList = document.createElement('div');
+            tagList.className = 'tag-list';
+            appendTags(tagList, bookmark);
+
+            const tagControls = document.createElement('div');
+            tagControls.className = 'tag-controls';
+            const tagInput = document.createElement('input');
+            tagInput.type = 'text';
+            tagInput.className = 'tag-input';
+            tagInput.placeholder = 'タグを追加';
+            tagInput.maxLength = 30;
+            tagInput.setAttribute('list', 'tagSuggestions');
+            tagInput.setAttribute('aria-label', `${recipe.name || 'レシピ'}に付けるタグ`);
+            const addTagButton = document.createElement('button');
+            addTagButton.type = 'button';
+            addTagButton.className = 'tag-add-button';
+            addTagButton.textContent = '追加';
+            addTagButton.addEventListener('click', () => addTag(bookmark.key, tagInput.value));
+            tagInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    addTag(bookmark.key, tagInput.value);
+                }
+            });
+            tagControls.append(tagInput, addTagButton);
+
+            const noteLabel = document.createElement('label');
+            noteLabel.className = 'organizer-label note-label';
+            noteLabel.textContent = 'メモ';
+            const noteInput = document.createElement('textarea');
+            noteInput.className = 'recipe-note';
+            noteInput.rows = 3;
+            noteInput.maxLength = 1000;
+            noteInput.placeholder = '作った日やアレンジなどをメモ';
+            noteInput.value = String(bookmark.note || '');
+            noteInput.setAttribute('aria-label', `${recipe.name || 'レシピ'}のメモ`);
+            noteLabel.appendChild(noteInput);
+
+            const saveNoteButton = document.createElement('button');
+            saveNoteButton.type = 'button';
+            saveNoteButton.className = 'note-save-button';
+            saveNoteButton.textContent = 'メモを保存';
+            saveNoteButton.addEventListener('click', () => saveNote(bookmark.key, noteInput.value));
+            noteInput.addEventListener('input', () => {
+                saveNoteButton.textContent = 'メモを保存';
+                saveNoteButton.disabled = false;
+            });
+
+            organizer.append(tagsHeading, tagList, tagControls, noteLabel, saveNoteButton);
+
+            const removeButton = document.createElement('button');
+            removeButton.type = 'button';
+            removeButton.className = 'bookmark-button is-remove';
+            removeButton.textContent = 'マイリストから削除';
+            removeButton.addEventListener('click', () => removeBookmark(bookmark.key));
+
+            const actions = document.createElement('div');
+            actions.className = 'recipe-actions';
+            actions.appendChild(removeButton);
+            card.dataset.bookmarkKey = bookmark.key;
+            card.append(header, title, description, meta, ingredientsHeading, ingredientsList, stepsHeading, stepsList, organizer, actions);
+            return card;
+        }
+
+        function appendTags(list, bookmark) {
+            const tags = Array.isArray(bookmark.tags) ? bookmark.tags : [];
+            if (tags.length === 0) {
+                const empty = document.createElement('span');
+                empty.className = 'tag-empty';
+                empty.textContent = 'タグなし';
+                list.appendChild(empty);
+                return;
+            }
+
+            tags.forEach((tag) => {
+                const chip = document.createElement('span');
+                chip.className = 'tag-chip';
+                const text = document.createElement('span');
+                text.textContent = tag;
+                const remove = document.createElement('button');
+                remove.type = 'button';
+                remove.textContent = '×';
+                remove.setAttribute('aria-label', `タグ「${tag}」を削除`);
+                remove.addEventListener('click', () => removeTag(bookmark.key, tag));
+                chip.append(text, remove);
+                list.appendChild(chip);
+            });
+        }
+
+        function addTag(key, rawTag) {
+            const tag = rawTag.trim();
+            if (!tag) return;
+            const bookmark = bookmarks.find((item) => item.key === key);
+            if (!bookmark) return;
+            const tags = Array.isArray(bookmark.tags) ? bookmark.tags : [];
+            if (tags.some((savedTag) => savedTag.toLocaleLowerCase('ja') === tag.toLocaleLowerCase('ja'))) return;
+            if (updateBookmark(key, { tags: [...tags, tag] })) focusCardControl(key, '.tag-input');
+        }
+
+        function removeTag(key, tag) {
+            const bookmark = bookmarks.find((item) => item.key === key);
+            if (!bookmark) return;
+            const tags = (Array.isArray(bookmark.tags) ? bookmark.tags : []).filter((savedTag) => savedTag !== tag);
+            if (updateBookmark(key, { tags })) focusCardControl(key, '.tag-input');
+        }
+
+        function saveNote(key, note) {
+            if (!updateBookmark(key, { note })) return;
+            const card = Array.from(savedRecipeList.children).find((item) => item.dataset.bookmarkKey === key);
+            const saveButton = card?.querySelector('.note-save-button');
+            if (saveButton) {
+                saveButton.textContent = '保存しました';
+                saveButton.disabled = true;
+            }
+            card?.querySelector('.recipe-note')?.focus();
+        }
+
+        function updateBookmark(key, changes) {
+            const previousBookmarks = bookmarks;
+            bookmarks = bookmarks.map((bookmark) => bookmark.key === key ? { ...bookmark, ...changes } : bookmark);
+            try {
+                localStorage.setItem(bookmarksKey, JSON.stringify(bookmarks));
+                renderBookmarks();
+                return true;
+            } catch {
+                bookmarks = previousBookmarks;
+                showStatus('変更を保存できませんでした。ブラウザーの保存設定をご確認ください。');
+                return false;
+            }
+        }
+
+        function focusCardControl(key, selector) {
+            const card = Array.from(savedRecipeList.children).find((item) => item.dataset.bookmarkKey === key);
+            card?.querySelector(selector)?.focus();
+        }
+
+        function appendItems(list, items) {
+            (Array.isArray(items) ? items : []).forEach((text) => {
+                const item = document.createElement('li');
+                item.textContent = String(text);
+                list.appendChild(item);
+            });
+        }
+
+        function removeBookmark(key) {
+            const previousBookmarks = bookmarks;
+            bookmarks = bookmarks.filter((bookmark) => bookmark.key !== key);
+            try {
+                localStorage.setItem(bookmarksKey, JSON.stringify(bookmarks));
+                renderBookmarks();
+            } catch {
+                bookmarks = previousBookmarks;
+                statusEl.textContent = 'マイリストを更新できませんでした。ブラウザーの保存設定をご確認ください。';
+                statusEl.hidden = false;
+                statusEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        function loadBookmarks() {
+            try {
+                const saved = JSON.parse(localStorage.getItem(bookmarksKey) || '[]');
+                return Array.isArray(saved)
+                    ? saved.filter((item) => item && item.recipe && item.key).map((item) => ({
+                        ...item,
+                        tags: Array.isArray(item.tags) ? item.tags.filter((tag) => typeof tag === 'string') : [],
+                        note: typeof item.note === 'string' ? item.note : ''
+                    }))
+                    : [];
+            } catch {
+                return [];
+            }
+        }
+    </script>
+</body>
+</html>
