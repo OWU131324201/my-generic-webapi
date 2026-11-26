@@ -3,13 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#faf2d9">
     <title>レシピ制作室</title>
     <style>
-        body { font-family: sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; color: #333; }
+        body { font-family: sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; color: #4b3728; background: #faf2d9; }
         h1 { font-size: 1.4rem; }
         ul { list-style: none; padding: 0; }
-        li { padding: 12px 0; border-bottom: 1px solid #eee; }
-        a { font-size: 1.1rem; text-decoration: none; color: #0366d6; }
+        li { padding: 12px 0; border-bottom: 1px solid #e8dbc0; }
+        a { font-size: 1.1rem; text-decoration: none; color: #805638; }
+        a:hover { color: #65432c; }
+        .app-count { display: inline-grid; min-width: 22px; height: 22px; margin-left: 5px; place-items: center; border-radius: 50%; background: #805638; color: #fffdf6; font-size: 12px; }
     </style>
 </head>
 <body>
@@ -38,11 +41,51 @@
                         ? 'マイリスト'
                         : name === 'shopping-list.html'
                             ? '買い物リスト'
-                            : name;
+                            : name === 'meal-plan.html'
+                                ? '週刊献立表'
+                                : name;
+                if (name === 'my-list.html' || name === 'shopping-list.html') {
+                    const badge = document.createElement('span');
+                    badge.className = 'app-count';
+                    badge.dataset.countKind = name === 'my-list.html' ? 'saved' : 'shopping';
+                    a.appendChild(badge);
+                }
                 li.appendChild(a);
                 list.appendChild(li);
             });
+            updateCounts();
         }
+
+        function updateCounts() {
+            document.querySelectorAll('[data-count-kind="saved"]').forEach((badge) => {
+                badge.textContent = String(countSavedRecipes());
+            });
+            document.querySelectorAll('[data-count-kind="shopping"]').forEach((badge) => {
+                badge.textContent = String(countPendingShoppingItems());
+            });
+        }
+
+        function countSavedRecipes() {
+            try {
+                const saved = JSON.parse(localStorage.getItem('recipe-bookmarks-v1') || '[]');
+                return Array.isArray(saved) ? saved.length : 0;
+            } catch {
+                return 0;
+            }
+        }
+
+        function countPendingShoppingItems() {
+            try {
+                const items = JSON.parse(localStorage.getItem('recipe-shopping-list-v1') || '[]');
+                return Array.isArray(items) ? items.filter(item => item && item.checked !== true).length : 0;
+            } catch {
+                return 0;
+            }
+        }
+
+        window.addEventListener('storage', (event) => {
+            if (event.key === 'recipe-bookmarks-v1' || event.key === 'recipe-shopping-list-v1') updateCounts();
+        });
 
         loadPages();
     </script>

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#faf2d9">
+    <title>週刊献立表 | レシピ制作室</title>
+    <link rel="stylesheet" href="recipe.css">
+</head>
+<body>
+    <main class="app-shell">
+        <header class="hero">
+            <div class="hero-copy">
+                <p class="eyebrow">YOUR WEEKLY MEAL PLAN</p>
+                <h1>週刊献立表<span>。</span></h1>
+                <p class="hero-description">マイリストのレシピを選んで、1週間の食事を組み立てましょう。</p>
+            </div>
+            <div class="hero-actions">
+                <a class="bookmark-nav back-nav" href="recipe.html">🥬 レシピ制作室</a>
+                <a class="bookmark-nav back-nav" href="my-list.html">❤️ マイリスト <span id="savedNavCount">0</span></a>
+                <a class="bookmark-nav back-nav utility-nav" href="shopping-list.html">🛒 買い物リスト <span id="shoppingNavCount">0</span></a>
+                <div class="hero-mark" aria-hidden="true">📅</div>
+            </div>
+        </header>
+
+        <section class="planner-section" aria-labelledby="weekHeading">
+            <div class="results-heading">
+                <div class="section-heading">
+                    <span class="step-number">📅</span>
+                    <div>
+                        <h2 id="weekHeading">今週の献立 <span id="plannedCount" class="saved-count"></span></h2>
+                        <p>曜日ごとにレシピを選ぶと、このブラウザーに自動で保存されます。</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="planner-toolbar">
+                <div class="week-navigation" aria-label="表示する週">
+                    <button id="previousWeekButton" class="week-nav-button" type="button">← 前の週</button>
+                    <p id="weekRange" class="week-range" aria-live="polite"></p>
+                    <button id="nextWeekButton" class="week-nav-button" type="button">次の週 →</button>
+                </div>
+                <button id="currentWeekButton" class="week-nav-button current-week-button" type="button">今週に戻る</button>
+            </div>
+
+            <div id="mealPlanGrid" class="meal-plan-grid"></div>
+            <p id="noSavedRecipes" class="empty-state" hidden>
+                献立に使うレシピがありません。<a href="recipe.html">レシピを作って</a>マイリストに保存してください。
+            </p>
+
+            <div class="planner-actions">
+                <button id="addPlanToShoppingButton" class="shopping-submit-button" type="button">🛒 今週の材料を買い物リストに追加</button>
+                <button id="clearWeekButton" class="shopping-tool-button is-secondary" type="button">今週の献立をクリア</button>
+            </div>
+        </section>
+
+        <p id="status" class="status" role="status" aria-live="polite" hidden></p>
+        <footer class="page-footer">おいしい時間を、いつもの食材から。</footer>
+    </main>
+
+    <script src="shopping-list.js"></script>
+    <script src="meal-plan.js"></script>
+</body>
+</html>

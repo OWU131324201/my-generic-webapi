@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#f7f4ec">
+    <meta name="theme-color" content="#faf2d9">
     <title>買い物リスト | レシピ制作室</title>
     <link rel="stylesheet" href="recipe.css">
 </head>
@@ -16,8 +16,9 @@
                 <p class="hero-description">レシピの材料をまとめて、買うものをチェックできます。</p>
             </div>
             <div class="hero-actions">
-                <a class="bookmark-nav back-nav" href="recipe.html">← レシピ制作室へ</a>
-                <a class="bookmark-nav back-nav" href="my-list.html">♡ マイリスト</a>
+                <a class="bookmark-nav back-nav" href="recipe.html">🥬 レシピ制作室</a>
+                <a class="bookmark-nav back-nav" href="my-list.html">❤️ マイリスト <span id="savedNavCount">0</span></a>
+                <a class="bookmark-nav back-nav utility-nav" href="meal-plan.html">📅 週刊献立表</a>
                 <div class="hero-mark" aria-hidden="true">🛒</div>
             </div>
         </header>
@@ -63,9 +64,13 @@
         const removeCheckedButton = document.getElementById('removeCheckedButton');
         const clearListButton = document.getElementById('clearListButton');
         const statusEl = document.getElementById('status');
+        const bookmarksKey = 'recipe-bookmarks-v1';
+        const savedNavCount = document.getElementById('savedNavCount');
+        const shoppingCount = document.getElementById('shoppingCount');
         let items = RecipeShoppingList.load();
 
         renderItems();
+        renderSavedCount();
 
         itemForm.addEventListener('submit', (event) => {
             event.preventDefault();
@@ -100,6 +105,7 @@
                 items = RecipeShoppingList.load();
                 renderItems();
             }
+            if (event.key === bookmarksKey) renderSavedCount();
         });
 
         function saveItems(nextItems) {
@@ -116,6 +122,7 @@
             shoppingItems.replaceChildren();
             const pendingCount = items.filter((item) => !item.checked).length;
             itemSummary.textContent = `${pendingCount}件 未購入 / ${items.length}件`;
+            if (shoppingCount) shoppingCount.textContent = String(pendingCount);
             shoppingEmpty.hidden = items.length > 0;
             removeCheckedButton.disabled = pendingCount === items.length;
             clearListButton.disabled = items.length === 0;
@@ -159,6 +166,15 @@
                 row.append(checkbox, details, removeButton);
                 shoppingItems.appendChild(row);
             });
+        }
+
+        function renderSavedCount() {
+            try {
+                const saved = JSON.parse(localStorage.getItem(bookmarksKey) || '[]');
+                savedNavCount.textContent = String(Array.isArray(saved) ? saved.length : 0);
+            } catch {
+                savedNavCount.textContent = '0';
+            }
         }
 
         function showStatus(message) {

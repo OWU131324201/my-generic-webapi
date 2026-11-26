@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#f7f4ec">
+    <meta name="theme-color" content="#faf2d9">
     <title>レシピ制作室</title>
     <link rel="stylesheet" href="recipe.css">
 </head>
@@ -18,6 +18,7 @@
             <div class="hero-actions">
                 <a class="bookmark-nav" href="my-list.html" aria-label="マイリストを開く">❤️ マイリスト <span id="savedCount">0</span></a>
                 <a class="bookmark-nav back-nav utility-nav" href="shopping-list.html">🛒 買い物リスト <span id="shoppingCount">0</span></a>
+                <a class="bookmark-nav back-nav utility-nav" href="meal-plan.html">📅 週刊献立表</a>
                 <div class="hero-mark" aria-hidden="true">🥬</div>
             </div>
         </header>
@@ -45,6 +46,7 @@
                             <option value="和食">和食</option>
                             <option value="洋食">洋食</option>
                             <option value="中華">中華</option>
+                            <option value="お菓子">お菓子</option>
                         </select>
                     </div>
 
@@ -94,6 +96,7 @@
     </main>
 
     <script src="shopping-list.js"></script>
+    <script src="cooking-mode.js"></script>
     <script>
         const form = document.getElementById('recipeForm');
         const submitButton = document.getElementById('submitButton');
@@ -272,6 +275,13 @@
             const actions = document.createElement('div');
             actions.className = 'recipe-actions';
 
+            const cookingModeButton = document.createElement('button');
+            cookingModeButton.type = 'button';
+            cookingModeButton.className = 'cooking-mode-button';
+            cookingModeButton.textContent = '調理モードで見る';
+            cookingModeButton.disabled = !Array.isArray(recipe.steps) || recipe.steps.length === 0;
+            cookingModeButton.addEventListener('click', () => CookingMode.open(recipe, cookingModeButton));
+
             const shoppingButton = document.createElement('button');
             shoppingButton.type = 'button';
             shoppingButton.className = 'shopping-add-button';
@@ -286,7 +296,7 @@
             regenerateButton.addEventListener('click', () => regenerateRecipe(index - 1));
             actions.appendChild(regenerateButton);
 
-            actions.append(shoppingButton, bookmarkButton);
+            actions.append(cookingModeButton, shoppingButton, bookmarkButton);
             card.append(header, title, description, meta, ingredientsHeading, ingredientsList, stepsHeading, stepsList, actions);
             return card;
         }

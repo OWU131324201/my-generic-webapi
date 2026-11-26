@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#f7f4ec">
+    <meta name="theme-color" content="#faf2d9">
     <title>マイリスト | レシピ制作室</title>
     <link rel="stylesheet" href="recipe.css">
 </head>
@@ -16,8 +16,9 @@
                 <p class="hero-description">お気に入りのレシピを、このブラウザーに保存しています。</p>
             </div>
             <div class="hero-actions">
-                <a class="bookmark-nav back-nav" href="recipe.html">← レシピ制作室へ</a>
+                <a class="bookmark-nav back-nav" href="recipe.html">🥬 レシピ制作室</a>
                 <a class="bookmark-nav back-nav" href="shopping-list.html">🛒 買い物リスト <span id="shoppingCount">0</span></a>
+                <a class="bookmark-nav back-nav utility-nav" href="meal-plan.html">📅 週刊献立表</a>
                 <div class="hero-mark" aria-hidden="true">❤️</div>
             </div>
         </header>
@@ -54,6 +55,7 @@
     </main>
 
     <script src="shopping-list.js"></script>
+    <script src="cooking-mode.js"></script>
     <script>
         const bookmarksKey = 'recipe-bookmarks-v1';
         const shoppingCount = document.getElementById('shoppingCount');
@@ -80,6 +82,8 @@
         renderShoppingCount();
 
         function renderBookmarks() {
+            const activeDialog = savedRecipeList.querySelector('.saved-recipe-dialog[open]');
+            const activeBookmarkKey = activeDialog?.dataset.bookmarkKey;
             savedRecipeList.replaceChildren();
             const query = searchInput.value.trim().toLocaleLowerCase('ja');
             const filteredBookmarks = bookmarks.filter((bookmark) => matchesSearch(bookmark, query));
@@ -88,6 +92,12 @@
             savedEmpty.hidden = bookmarks.length > 0;
             noResults.hidden = bookmarks.length === 0 || filteredBookmarks.length > 0;
             filteredBookmarks.forEach((bookmark) => savedRecipeList.appendChild(createRecipeCard(bookmark)));
+
+            if (activeBookmarkKey) {
+                const activeCard = Array.from(savedRecipeList.children)
+                    .find((card) => card.dataset.bookmarkKey === activeBookmarkKey);
+                activeCard?.querySelector('.saved-recipe-dialog')?.showModal();
+            }
         }
 
         function matchesSearch(bookmark, query) {
@@ -110,24 +120,59 @@
             const card = document.createElement('article');
             card.className = 'recipe-card';
 
-            const header = document.createElement('div');
-            header.className = 'recipe-card-header';
-            const label = document.createElement('span');
-            label.className = 'recipe-number';
-            label.textContent = 'MY LIST';
-            const time = document.createElement('span');
-            time.className = 'time-badge';
-            time.textContent = `◷ ${Number(recipe.cookingTimeMinutes) || '—'}分`;
-            header.append(label, time);
+            const summary = document.createElement('div');
+            summary.className = 'saved-recipe-summary';
+            const overview = document.createElement('div');
+            overview.className = 'saved-recipe-overview';
 
             const title = document.createElement('h3');
             title.textContent = recipe.name || 'おすすめレシピ';
             const description = document.createElement('p');
             description.className = 'recipe-description';
             description.textContent = recipe.description || '';
+            overview.append(title, description);
+
+            const summaryFooter = document.createElement('div');
+            summaryFooter.className = 'saved-recipe-summary-footer';
             const meta = document.createElement('p');
             meta.className = 'servings-note';
             meta.textContent = `${bookmark.genre || 'ジャンル未設定'}・${bookmark.servings || 2}人分`;
+            const time = document.createElement('span');
+            time.className = 'time-badge';
+            time.textContent = `◷ ${Number(recipe.cookingTimeMinutes) || '—'}分`;
+            const openButton = document.createElement('button');
+            openButton.type = 'button';
+            openButton.className = 'saved-recipe-open-button';
+            openButton.textContent = '詳細を見る';
+            summaryFooter.append(meta, time, openButton);
+            summary.append(overview, summaryFooter);
+
+            const dialog = document.createElement('dialog');
+            dialog.className = 'saved-recipe-dialog';
+            dialog.dataset.bookmarkKey = bookmark.key;
+            const dialogTitle = document.createElement('h2');
+            dialogTitle.className = 'saved-recipe-dialog-title';
+            dialogTitle.id = `saved-recipe-dialog-title-${bookmarks.indexOf(bookmark)}`;
+            dialogTitle.textContent = recipe.name || 'おすすめレシピ';
+            dialog.setAttribute('aria-labelledby', dialogTitle.id);
+
+            const dialogHeader = document.createElement('div');
+            dialogHeader.className = 'saved-recipe-dialog-header';
+            const closeButton = document.createElement('button');
+            closeButton.type = 'button';
+            closeButton.className = 'saved-recipe-dialog-close';
+            closeButton.textContent = '閉じる';
+            closeButton.addEventListener('click', () => dialog.close());
+            dialogHeader.append(dialogTitle, closeButton);
+
+            const dialogStatus = document.createElement('p');
+            dialogStatus.className = 'status saved-recipe-dialog-status';
+            dialogStatus.setAttribute('role', 'status');
+            dialogStatus.setAttribute('aria-live', 'polite');
+            dialogStatus.hidden = true;
+
+            const content = document.createElement('div');
+            content.className = 'saved-recipe-content';
 
             const ingredientsHeading = document.createElement('h4');
             ingredientsHeading.textContent = '材料';
@@ -210,9 +255,23 @@
 
             const actions = document.createElement('div');
             actions.className = 'recipe-actions';
-            actions.append(shoppingButton, removeButton);
+
+            const cookingModeButton = document.createElement('button');
+            cookingModeButton.type = 'button';
+            cookingModeButton.className = 'cooking-mode-button';
+            cookingModeButton.textContent = '調理モードで見る';
+            cookingModeButton.disabled = !Array.isArray(recipe.steps) || recipe.steps.length === 0;
+            cookingModeButton.addEventListener('click', () => CookingMode.open(recipe, cookingModeButton));
+
+            actions.append(cookingModeButton, shoppingButton, removeButton);
             card.dataset.bookmarkKey = bookmark.key;
-            card.append(header, title, description, meta, ingredientsHeading, ingredientsList, stepsHeading, stepsList, organizer, actions);
+            content.append(ingredientsHeading, ingredientsList, stepsHeading, stepsList, organizer, actions);
+            dialog.append(dialogHeader, dialogStatus, content);
+            openButton.addEventListener('click', () => dialog.showModal());
+            dialog.addEventListener('click', (event) => {
+                if (event.target === dialog) dialog.close();
+            });
+            card.append(summary, dialog);
             return card;
         }
 
@@ -313,9 +372,12 @@
         }
 
         function showStatus(message) {
-            statusEl.textContent = message;
-            statusEl.hidden = false;
-            statusEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            const activeDialog = savedRecipeList.querySelector('.saved-recipe-dialog[open]');
+            const target = activeDialog?.querySelector('.saved-recipe-dialog-status') || statusEl;
+            target.textContent = message;
+            target.hidden = false;
+            if (target !== statusEl) statusEl.hidden = true;
+            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
 
         function removeBookmark(key) {
@@ -326,9 +388,7 @@
                 renderBookmarks();
             } catch {
                 bookmarks = previousBookmarks;
-                statusEl.textContent = 'マイリストを更新できませんでした。ブラウザーの保存設定をご確認ください。';
-                statusEl.hidden = false;
-                statusEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                showStatus('マイリストを更新できませんでした。ブラウザーの保存設定をご確認ください。');
             }
         }
 

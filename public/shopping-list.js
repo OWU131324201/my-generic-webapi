@@ -31,28 +31,35 @@
     }
 
     function addRecipe(recipe) {
+        return addRecipes([recipe]);
+    }
+
+    function addRecipes(recipes) {
         const items = load();
-        const recipeName = String(recipe?.name || 'レシピ').trim();
         let added = 0;
         let changed = false;
-        const ingredients = Array.isArray(recipe?.ingredients) ? recipe.ingredients : [];
 
-        ingredients.forEach((ingredient) => {
-            const text = String(ingredient).trim();
-            if (!text) return;
+        (Array.isArray(recipes) ? recipes : []).forEach((recipe) => {
+            const recipeName = String(recipe?.name || 'レシピ').trim();
+            const ingredients = Array.isArray(recipe?.ingredients) ? recipe.ingredients : [];
 
-            const existing = items.find((item) => item.text.toLocaleLowerCase('ja') === text.toLocaleLowerCase('ja'));
-            if (existing) {
-                if (!existing.recipes.includes(recipeName)) {
-                    existing.recipes.push(recipeName);
-                    changed = true;
+            ingredients.forEach((ingredient) => {
+                const text = String(ingredient).trim();
+                if (!text) return;
+
+                const existing = items.find((item) => item.text.toLocaleLowerCase('ja') === text.toLocaleLowerCase('ja'));
+                if (existing) {
+                    if (!existing.recipes.includes(recipeName)) {
+                        existing.recipes.push(recipeName);
+                        changed = true;
+                    }
+                    return;
                 }
-                return;
-            }
 
-            items.unshift(createItem(text, [recipeName]));
-            added += 1;
-            changed = true;
+                items.unshift(createItem(text, [recipeName]));
+                added += 1;
+                changed = true;
+            });
         });
 
         return {
@@ -70,5 +77,5 @@
         return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
     }
 
-    window.RecipeShoppingList = { key, load, save, createItem, countPending, addRecipe };
+    window.RecipeShoppingList = { key, load, save, createItem, countPending, addRecipe, addRecipes };
 })();
