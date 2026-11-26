@@ -16,8 +16,9 @@
                 <p class="hero-description">冷蔵庫にある食材から、今日作りたい料理を見つけましょう。</p>
             </div>
             <div class="hero-actions">
-                <a class="bookmark-nav" href="my-list.html" aria-label="マイリストを開く">♡ マイリスト <span id="savedCount">0</span></a>
-                <div class="hero-mark" aria-hidden="true">菜</div>
+                <a class="bookmark-nav" href="my-list.html" aria-label="マイリストを開く">❤️ マイリスト <span id="savedCount">0</span></a>
+                <a class="bookmark-nav back-nav utility-nav" href="shopping-list.html">🛒 買い物リスト <span id="shoppingCount">0</span></a>
+                <div class="hero-mark" aria-hidden="true">🥬</div>
             </div>
         </header>
 
@@ -92,6 +93,7 @@
         <footer class="page-footer">おいしい時間を、いつもの食材から。</footer>
     </main>
 
+    <script src="shopping-list.js"></script>
     <script>
         const form = document.getElementById('recipeForm');
         const submitButton = document.getElementById('submitButton');
@@ -99,6 +101,7 @@
         const resultsSection = document.getElementById('resultsSection');
         const recipeList = document.getElementById('recipeList');
         const savedCount = document.getElementById('savedCount');
+        const shoppingCount = document.getElementById('shoppingCount');
         const bookmarksKey = 'recipe-bookmarks-v1';
         let bookmarks = loadBookmarks();
         let currentRecipes = [];
@@ -106,12 +109,14 @@
         let regeneratingIndex = null;
 
         renderBookmarks();
+        renderShoppingCount();
         window.addEventListener('storage', (event) => {
             if (event.key === bookmarksKey) {
                 bookmarks = loadBookmarks();
                 renderBookmarks();
                 renderGeneratedRecipes();
             }
+            if (event.key === RecipeShoppingList.key) renderShoppingCount();
         });
 
         form.addEventListener('submit', async (event) => {
@@ -267,6 +272,12 @@
             const actions = document.createElement('div');
             actions.className = 'recipe-actions';
 
+            const shoppingButton = document.createElement('button');
+            shoppingButton.type = 'button';
+            shoppingButton.className = 'shopping-add-button';
+            shoppingButton.textContent = '🛒 材料を買い物リストに追加';
+            shoppingButton.addEventListener('click', () => addToShoppingList(recipe));
+
             const regenerateButton = document.createElement('button');
             regenerateButton.type = 'button';
             regenerateButton.className = 'regenerate-button';
@@ -275,13 +286,29 @@
             regenerateButton.addEventListener('click', () => regenerateRecipe(index - 1));
             actions.appendChild(regenerateButton);
 
-            actions.appendChild(bookmarkButton);
+            actions.append(shoppingButton, bookmarkButton);
             card.append(header, title, description, meta, ingredientsHeading, ingredientsList, stepsHeading, stepsList, actions);
             return card;
         }
 
         function renderBookmarks() {
             savedCount.textContent = String(bookmarks.length);
+        }
+
+        function renderShoppingCount() {
+            shoppingCount.textContent = String(RecipeShoppingList.countPending());
+        }
+
+        function addToShoppingList(recipe) {
+            const result = RecipeShoppingList.addRecipe(recipe);
+            if (!result.ok) {
+                showStatus('買い物リストを保存できませんでした。ブラウザーの保存設定をご確認ください。');
+                return;
+            }
+            renderShoppingCount();
+            showStatus(result.added > 0
+                ? `材料を${result.added}件、買い物リストに追加しました。`
+                : 'このレシピの材料は、すでに買い物リストにあります。');
         }
 
         function addBookmark(bookmark) {

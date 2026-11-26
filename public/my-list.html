@@ -17,7 +17,8 @@
             </div>
             <div class="hero-actions">
                 <a class="bookmark-nav back-nav" href="recipe.html">← レシピ制作室へ</a>
-                <div class="hero-mark" aria-hidden="true">♡</div>
+                <a class="bookmark-nav back-nav" href="shopping-list.html">🛒 買い物リスト <span id="shoppingCount">0</span></a>
+                <div class="hero-mark" aria-hidden="true">❤️</div>
             </div>
         </header>
 
@@ -52,8 +53,10 @@
         <footer class="page-footer">おいしい時間を、いつもの食材から。</footer>
     </main>
 
+    <script src="shopping-list.js"></script>
     <script>
         const bookmarksKey = 'recipe-bookmarks-v1';
+        const shoppingCount = document.getElementById('shoppingCount');
         const savedRecipeList = document.getElementById('savedRecipeList');
         const savedEmpty = document.getElementById('savedEmpty');
         const noResults = document.getElementById('noResults');
@@ -71,7 +74,10 @@
                 bookmarks = loadBookmarks();
                 renderBookmarks();
             }
+            if (event.key === RecipeShoppingList.key) renderShoppingCount();
         });
+
+        renderShoppingCount();
 
         function renderBookmarks() {
             savedRecipeList.replaceChildren();
@@ -196,9 +202,15 @@
             removeButton.textContent = 'マイリストから削除';
             removeButton.addEventListener('click', () => removeBookmark(bookmark.key));
 
+            const shoppingButton = document.createElement('button');
+            shoppingButton.type = 'button';
+            shoppingButton.className = 'shopping-add-button';
+            shoppingButton.textContent = '🛒 材料を買い物リストに追加';
+            shoppingButton.addEventListener('click', () => addToShoppingList(recipe));
+
             const actions = document.createElement('div');
             actions.className = 'recipe-actions';
-            actions.appendChild(removeButton);
+            actions.append(shoppingButton, removeButton);
             card.dataset.bookmarkKey = bookmark.key;
             card.append(header, title, description, meta, ingredientsHeading, ingredientsList, stepsHeading, stepsList, organizer, actions);
             return card;
@@ -282,6 +294,28 @@
                 item.textContent = String(text);
                 list.appendChild(item);
             });
+        }
+
+        function addToShoppingList(recipe) {
+            const result = RecipeShoppingList.addRecipe(recipe);
+            if (!result.ok) {
+                showStatus('買い物リストを保存できませんでした。ブラウザーの保存設定をご確認ください。');
+                return;
+            }
+            renderShoppingCount();
+            showStatus(result.added > 0
+                ? `材料を${result.added}件、買い物リストに追加しました。`
+                : 'このレシピの材料は、すでに買い物リストにあります。');
+        }
+
+        function renderShoppingCount() {
+            if (shoppingCount) shoppingCount.textContent = String(RecipeShoppingList.countPending());
+        }
+
+        function showStatus(message) {
+            statusEl.textContent = message;
+            statusEl.hidden = false;
+            statusEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
 
         function removeBookmark(key) {

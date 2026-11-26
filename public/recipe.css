@@ -192,6 +192,31 @@ h1 span { color: var(--orange); }
 .my-list-tools input:focus, .tag-input:focus, .recipe-note:focus { border-color: #77917a; box-shadow: 0 0 0 3px rgba(49, 91, 67, .1); }
 .search-summary { margin: 7px 0 0; color: var(--muted); font-size: 11px; }
 
+.shopping-section { padding-top: 50px; scroll-margin-top: 24px; }
+.shopping-form { margin: 0 8px 20px; }
+.shopping-form > label { display: block; margin-bottom: 8px; color: var(--ink); font-size: 12px; font-weight: 700; }
+.shopping-input-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.shopping-input-row input { width: 100%; height: 46px; padding: 0 14px; border: 1px solid var(--line); border-radius: 8px; outline: none; background: #fff; color: var(--ink); font: inherit; }
+.shopping-input-row input:focus { border-color: #77917a; box-shadow: 0 0 0 3px rgba(49, 91, 67, .1); }
+.shopping-submit-button { min-width: 76px; padding: 0 16px; border: 0; border-radius: 8px; background: var(--green); color: #fff; cursor: pointer; font-size: 12px; font-weight: 700; }
+.shopping-submit-button:hover { background: var(--green-dark); }
+.shopping-add-button { width: 100%; min-height: 42px; padding: 8px 12px; border: 1px solid var(--green); border-radius: 7px; background: var(--green); color: #fff; cursor: pointer; font-size: 12px; font-weight: 700; transition: background .2s, border-color .2s; }
+.shopping-add-button:hover { border-color: var(--green-dark); background: var(--green-dark); }
+.shopping-tools { display: flex; justify-content: flex-end; gap: 8px; margin: 0 8px 12px; }
+.shopping-tool-button, .shopping-remove-button { min-height: 34px; padding: 5px 10px; border: 1px solid #d8e1d5; border-radius: 7px; background: #f3f7f1; color: var(--green); cursor: pointer; font-size: 11px; font-weight: 600; }
+.shopping-tool-button:hover:not(:disabled) { background: var(--green-pale); }
+.shopping-tool-button.is-secondary { border-color: #e5e1d7; background: transparent; color: var(--muted); }
+.shopping-tool-button:disabled { cursor: default; opacity: .5; }
+.shopping-items { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.shopping-item { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 13px 16px; border: 1px solid rgba(67, 79, 63, .08); border-radius: 10px; background: var(--white); box-shadow: 0 5px 18px rgba(52, 63, 50, .04); }
+.shopping-item > input { width: 18px; height: 18px; accent-color: var(--green); cursor: pointer; }
+.shopping-item-details { display: grid; min-width: 0; }
+.shopping-item-text { overflow-wrap: anywhere; font-size: 13px; font-weight: 600; }
+.shopping-item-details small { overflow-wrap: anywhere; color: var(--muted); font-size: 10px; }
+.shopping-item.is-checked .shopping-item-text { color: #8b938a; text-decoration: line-through; }
+.shopping-remove-button { border-color: #e5e1d7; background: transparent; color: var(--muted); }
+.shopping-remove-button:hover { border-color: #d6aaa0; background: #fff5f0; color: #914e36; }
+
 .recipe-card { padding: 23px 21px 25px; }
 .recipe-card-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 15px; }
 .recipe-number { color: var(--green); font-size: 10px; font-weight: 700; letter-spacing: .12em; }
@@ -289,6 +314,8 @@ h1 span { color: var(--orange); }
     .bookmark-nav span { font-size: 10px; }
     .bookmark-nav.back-nav { gap: 5px; padding: 5px 7px; font-size: 11px; }
     .bookmark-nav.back-nav::before { content: none; }
+    .bookmark-nav.utility-nav { gap: 5px; padding: 5px 7px; font-size: 11px; }
+    .bookmark-nav.utility-nav::before { content: none; }
     h1 { font-size: 31px; }
     .section-heading { gap: 11px; }
     .section-heading h2 { font-size: 17px; }
@@ -296,4 +323,5 @@ h1 span { color: var(--orange); }
     .form-grid .form-group:first-child { grid-column: auto; }
     .form-footer { align-items: stretch; flex-direction: column; }
     .submit-button { width: 100%; }
+    .shopping-tools { align-items: stretch; flex-direction: column; }
 }
